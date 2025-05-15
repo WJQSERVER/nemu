@@ -1,5 +1,8 @@
 #!/bin/bash
 
+OS=$(uname -s)
+ARCH=$(uname -m)
+
 bin_dir="/root/data/nemu/nemu"
 
 # 函数：安装软件包
