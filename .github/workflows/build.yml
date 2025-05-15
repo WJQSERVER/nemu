@@ -67,6 +67,7 @@ jobs:
         run: |
           cd server
           CGO_ENABLED=0 go build -ldflags "-s -w" -o  ${{ env.OUTPUT_BINARY }}-${{matrix.goos}}-${{matrix.goarch}} .
+          ls
       - name: Package
         run: |
           tar -czvf ${{ env.OUTPUT_BINARY }}-${{matrix.goos}}-${{matrix.goarch}}.tar.gz ./${{ env.OUTPUT_BINARY }}-${{matrix.goos}}-${{matrix.goarch}} 
@@ -115,6 +116,7 @@ jobs:
         run: |
           cd client
           CGO_ENABLED=0 go build -ldflags "-s -w" -o  ${{ env.OUTPUT_BINARY }}-${{matrix.goos}}-${{matrix.goarch}} .
+          ls
       - name: Package
         run: |
           tar -czvf ${{ env.OUTPUT_BINARY }}-${{matrix.goos}}-${{matrix.goarch}}.tar.gz ./${{ env.OUTPUT_BINARY }}-${{matrix.goos}}-${{matrix.goarch}} 
