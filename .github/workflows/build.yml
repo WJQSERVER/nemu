@@ -70,7 +70,7 @@ jobs:
           ls
       - name: Package
         run: |
-          tar -czvf ${{ env.OUTPUT_BINARY }}-${{matrix.goos}}-${{matrix.goarch}}.tar.gz ./${{ env.OUTPUT_BINARY }}-${{matrix.goos}}-${{matrix.goarch}} 
+          tar -czvf ${{ env.OUTPUT_BINARY }}-${{matrix.goos}}-${{matrix.goarch}}.tar.gz ${{ env.OUTPUT_BINARY }}-${{matrix.goos}}-${{matrix.goarch}} 
       - name: 上传至Release
         id: create_release
         uses: ncipollo/release-action@v1
@@ -119,7 +119,7 @@ jobs:
           ls
       - name: Package
         run: |
-          tar -czvf ${{ env.OUTPUT_BINARY }}-${{matrix.goos}}-${{matrix.goarch}}.tar.gz ./${{ env.OUTPUT_BINARY }}-${{matrix.goos}}-${{matrix.goarch}} 
+          tar -czvf ${{ env.OUTPUT_BINARY }}-${{matrix.goos}}-${{matrix.goarch}}.tar.gz ${{ env.OUTPUT_BINARY }}-${{matrix.goos}}-${{matrix.goarch}} 
       - name: 上传至Release
         id: create_release
         uses: ncipollo/release-action@v1
