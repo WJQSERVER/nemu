@@ -75,16 +75,16 @@ case "$ARCH" in
         ;;
 esac
 
-if [ -z "$VERSION" ]; then
-    echo "Error: Failed to get latest version from ${VERSION_URL}"
-    exit 1
-fi
-
 echo "Downloading nemu version: ${VERSION} ($OS/$GO_ARCH)"
 
 # 获取最新版本号
 VERSION_URL="https://raw.githubusercontent.com/WJQSERVER/nemu/main/VERSION"
 VERSION=$(curl -s "${VERSION_URL}")
+
+if [ -z "$VERSION" ]; then
+    echo "Error: Failed to get latest version from ${VERSION_URL}"
+    exit 1
+fi
 
 # 下载 VERSION 文件到安装目录
 wget -O "${bin_dir}.VERSION" "${VERSION_URL}"

@@ -76,7 +76,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           name: ${{ env.VERSION }}
-          artifacts: ./${{ env.OUTPUT_BINARY }}*
+          artifacts: ./server/${{ env.OUTPUT_BINARY }}*
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ env.VERSION }}
           allowUpdates: true
@@ -125,7 +125,7 @@ jobs:
         uses: ncipollo/release-action@v1
         with:
           name: ${{ env.VERSION }}
-          artifacts: ./${{ env.OUTPUT_BINARY }}*
+          artifacts: ./client/${{ env.OUTPUT_BINARY }}*
           token: ${{ secrets.GITHUB_TOKEN }}
           tag: ${{ env.VERSION }}
           allowUpdates: true
