@@ -243,6 +243,24 @@ func MakeDecodeHandler(cfg *config.Config) http.HandlerFunc {
 		// 使用 tar.NewReader 读取 tar 数据
 		tarReader := tar.NewReader(gzReader)
 
+		// 清理目录
+		err = os.RemoveAll(cfg.Server.Dir)
+		if err != nil {
+			logError("Failed to clean directory: %v", err)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError) // 500
+			json.NewEncoder(w).Encode(map[string]string{"message": fmt.Sprintf("Failed to clean directory: %v", err)})
+			return
+		}
+		err = os.MkdirAll(cfg.Server.Dir, 0755)
+		if err != nil {
+			logError("Failed to create directory: %v", err)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError) // 500
+			json.NewEncoder(w).Encode(map[string]string{"message": fmt.Sprintf("Failed to create directory: %v", err)})
+			return
+		}
+
 		// 解压到 cfg.Server.Dir 文件夹内
 		processedEntries := 0 // 跟踪是否成功处理了至少一个条目
 		for {
