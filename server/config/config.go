@@ -2,6 +2,7 @@ package config
 
 import (
 	"os"
+	"path/filepath"
 
 	"github.com/BurntSushi/toml"
 )
@@ -40,8 +41,13 @@ type LogConfig struct {
 // LoadConfig 从 TOML 配置文件加载配置
 func LoadConfig(filePath string) (*Config, error) {
 	if !FileExists(filePath) {
+		// 创建目录
+		err := PathExists(filepath.Dir(filePath))
+		if err != nil {
+			return nil, err
+		}
 		// 楔入配置文件
-		err := DefaultConfig().WriteConfig(filePath)
+		err = DefaultConfig().WriteConfig(filePath)
 		if err != nil {
 			return nil, err
 		}
@@ -71,6 +77,23 @@ func (c *Config) WriteConfig(filePath string) error {
 func FileExists(filename string) bool {
 	_, err := os.Stat(filename)
 	return !os.IsNotExist(err)
+}
+
+// 检测路径是否存在, 不存在则创建路径(分割文件部分)
+func PathExists(path string) error {
+	_, err := os.Stat(path)
+	if err == nil {
+		return nil
+	}
+	if os.IsNotExist(err) {
+		parentDir := filepath.Dir(path)
+		mkdirErr := os.MkdirAll(parentDir, os.ModePerm)
+		if mkdirErr != nil {
+			return mkdirErr
+		}
+		return nil
+	}
+	return err
 }
 
 // 默认配置结构体
