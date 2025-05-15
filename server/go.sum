@@ -1,0 +1,12 @@
+github.com/BurntSushi/toml v1.5.0 h1:W5quZX/G/csjUnuI8SUYlsHs9M38FC7znL0lIO+DvMg=
+github.com/BurntSushi/toml v1.5.0/go.mod h1:ukJfTF/6rtPPRCnwkur4qwRxa8vTRFBF0uk2lLoLwho=
+github.com/WJQSERVER-STUDIO/go-utils/copyb v0.0.4 h1:JLtFd00AdFg/TP+dtvIzLkdHwKUGPOAijN1sMtEYoFg=
+github.com/WJQSERVER-STUDIO/go-utils/copyb v0.0.4/go.mod h1:FZ6XE+4TKy4MOfX1xWKe6Rwsg0ucYFCdNh1KLvyKTfc=
+github.com/WJQSERVER-STUDIO/go-utils/log v0.0.2 h1:9CSf+V0ZQPl2ijC/g6v/ObemmhpKcikKVIodsaLExTA=
+github.com/WJQSERVER-STUDIO/go-utils/log v0.0.2/go.mod h1:j9Q+xnwpOfve7/uJnZ2izRQw6NNoXjvJHz7vUQAaLZE=
+github.com/WJQSERVER-STUDIO/logger v1.6.0 h1:xK2xV7hlkMXaWzvj4+cNoNWA+JfnJaHX6VU+RrPnr7Q=
+github.com/WJQSERVER-STUDIO/logger v1.6.0/go.mod h1:TICMsR7geROHBg6rxwkqUNGydo34XVsX93yeoxyfuyY=
+github.com/WJQSERVER/httprouter v0.0.3 h1:IUmLn/3CYyoPrjIQy3t+HdlufqMS/Ob7ysvFjYH6leQ=
+github.com/WJQSERVER/httprouter v0.0.3/go.mod h1:gHOiwwv37DflzxvVo4NaEF5ozBz3Nk+kyASyfKYe0c4=
+github.com/valyala/bytebufferpool v1.0.0 h1:GqA5TC/0021Y/b9FG4Oi9Mr3q7XYx6KllzawFIhcdPw=
+github.com/valyala/bytebufferpool v1.0.0/go.mod h1:6bBcMArwyJ5K/AmCkWv1jt77kVWyCJ6HpOuEn7z0Csc=

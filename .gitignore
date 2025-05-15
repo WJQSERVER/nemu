@@ -1,0 +1,4 @@
+*.log
+demo.toml
+server/public
+client/public

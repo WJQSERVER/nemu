@@ -1,0 +1,10 @@
+[server]
+host = "127.0.0.1"
+port = 8168
+dir = "public"
+token = "b0412597dcea813655574dc54a5b74967cf85317f0332a2591be7953a016f8de56200eb37d5ba593b1e4aa27cea5ca27100f94dccd5b04bae5cadd4454dba67d"
+
+[log]
+logFilePath = "nemu.log"
+maxLogSize = 5
+level = "info"
