@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"nemu-server/config"
 	"nemu-server/decode"
+	"nemu-server/errpage"
 	"net/http"
 
 	"os"
@@ -81,6 +82,9 @@ func main() {
 
 	fs := http.Dir(cfg.Server.Dir)
 	r.ServeUnmatched(fs)
+
+	//r.SetErrorHandler(r.GetDefaultErrHandler())
+	r.SetErrorHandler(errpage.ErrorHandler)
 	/*
 		r.POST("/nemu/upload",
 			func(c *gin.Context) {
