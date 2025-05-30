@@ -3,7 +3,6 @@ package decode
 import (
 	"archive/tar"
 	"compress/gzip"
-	"encoding/json"
 	"fmt"
 	"io"
 	"nemu-server/config"
@@ -14,6 +13,7 @@ import (
 
 	"github.com/WJQSERVER-STUDIO/go-utils/copyb"
 	"github.com/WJQSERVER-STUDIO/logger"
+	"github.com/infinite-iroha/touka"
 )
 
 var (
@@ -58,161 +58,19 @@ func SafeTarExtractPath(baseDir string, tarEntryName string) (string, error) {
 	return finalPath, nil
 }
 
-/*
-
-func DecodeHandle(c *gin.Context, cfg *config.Config) {
-
-	inputToken := c.GetHeader("Nemu-Token")
-	if inputToken != cfg.Server.Token {
-		logError("Invalid token")
-		c.JSON(401, gin.H{
-			"message": "Unauthorized",
-		})
-		return
-	}
-
-	reqBody := c.Request.Body
-	defer reqBody.Close()
-
-	if reqBody == nil {
-		logError("Request body is nil")
-		return
-	}
-
-	gzReader, err := gzip.NewReader(reqBody)
-	if err != nil {
-		logError("Failed to create gzip reader: %v", err)
-		return
-	}
-	defer gzReader.Close()
-
-	tarReader := tar.NewReader(gzReader)
-
-	// 解压到 cfg.Server.Dir 文件夹内
-	for {
-		header, err := tarReader.Next()
-		if err == io.EOF {
-			break
-		}
-		if err != nil {
-			logError("Failed to read tar header: %v", err)
-			return
-		}
-		switch header.Typeflag {
-		case tar.TypeReg:
-
-			targetPath, err := SafeTarExtractPath(cfg.Server.Dir, header.Name)
-			if err != nil {
-				logError("Path traversal detected: %v", err)
-				return
-			}
-
-			outFile, err := os.OpenFile(targetPath, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
-			if err != nil {
-				logError("Failed to create file: %v", err)
-				return
-			}
-
-			defer outFile.Close()
-
-			_, err = copyb.Copy(outFile, tarReader)
-			if err != nil {
-				logError("Failed to copy file: %v", err)
-				return
-			}
-
-			err = os.Chmod(targetPath, os.FileMode(header.Mode))
-			if err != nil {
-				logError("Failed to change file permissions: %v", err)
-				return
-			}
-
-			if !header.ModTime.IsZero() {
-				err := os.Chtimes(targetPath, header.ModTime, header.ModTime)
-				if err != nil {
-					logError("Failed to change file modification time: %v", err)
-					return
-				}
-			}
-
-		case tar.TypeDir:
-			targetPath, err := SafeTarExtractPath(cfg.Server.Dir, header.Name)
-			if err != nil {
-				logError("Path traversal detected: %v", err)
-				return
-			}
-			err = os.MkdirAll(targetPath, os.FileMode(header.Mode))
-			if err != nil {
-				logError("Failed to create directory: %v", err)
-				return
-			}
-
-			err = os.Chmod(targetPath, os.FileMode(header.Mode))
-			if err != nil {
-				logError("Failed to change directory permissions: %v", err)
-				return
-			}
-
-			if !header.ModTime.IsZero() {
-				err = os.Chtimes(targetPath, header.ModTime, header.ModTime)
-				if err != nil {
-					logError("Failed to change directory modification time: %v", err)
-					return
-				}
-
-			}
-
-		case tar.TypeSymlink:
-			targetPath, err := SafeTarExtractPath(cfg.Server.Dir, header.Name)
-			if err != nil {
-				logError("Path traversal detected: %v", err)
-				return
-			}
-			err = os.Symlink(header.Linkname, targetPath)
-			if err != nil {
-				logError("Failed to create symlink: %v", err)
-				return
-			}
-
-		case tar.TypeLink:
-			targetPath, err := SafeTarExtractPath(cfg.Server.Dir, header.Name)
-			if err != nil {
-				logError("Path traversal detected: %v", err)
-				return
-			}
-			err = os.Link(cfg.Server.Dir+"/"+header.Linkname, targetPath)
-			if err != nil {
-				logError("Failed to create hard link: %v", err)
-				return
-			}
-
-		default:
-			logWarning("Unhandled type: %v", header.Typeflag)
-
-		}
-
-		// 返回状态码
-		c.JSON(200, gin.H{
-			"message": "success",
-		})
-
-	}
-
-}
-*/
-
 // MakeDecodeHandler 创建一个标准的 http.HandlerFunc，通过闭包访问配置。
-func MakeDecodeHandler(cfg *config.Config) http.HandlerFunc {
+func MakeDecodeHandler(cfg *config.Config) touka.HandlerFunc {
 	// 返回符合 http.HandlerFunc 签名的函数
-	return func(w http.ResponseWriter, r *http.Request) {
+	return func(c *touka.Context) {
+		r := c.Request
+
 		// 获取头部信息
 		inputToken := r.Header.Get("Nemu-Token")
 		if inputToken != cfg.Server.Token {
 			logError("Invalid token")
-			// 发送 JSON 响应 (手动设置头部和状态码，编码 JSON)
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusUnauthorized) // 401
-			json.NewEncoder(w).Encode(map[string]string{"message": "Unauthorized"})
+			c.JSON(401, touka.H{
+				"message": "Unauthorized",
+			})
 			return // 提前返回
 		}
 
@@ -223,9 +81,7 @@ func MakeDecodeHandler(cfg *config.Config) http.HandlerFunc {
 
 		if reqBody == nil {
 			logError("Request body is nil")
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusBadRequest) // 400
-			json.NewEncoder(w).Encode(map[string]string{"message": "Request body is nil"})
+			c.JSON(http.StatusBadRequest, touka.H{"message": "Request body is nil"})
 			return
 		}
 
@@ -233,9 +89,7 @@ func MakeDecodeHandler(cfg *config.Config) http.HandlerFunc {
 		gzReader, err := gzip.NewReader(reqBody)
 		if err != nil {
 			logError("Failed to create gzip reader: %v", err)
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusInternalServerError) // 500
-			json.NewEncoder(w).Encode(map[string]string{"message": fmt.Sprintf("Failed to process gzip data: %v", err)})
+			c.JSON(http.StatusInternalServerError, touka.H{"message": fmt.Sprintf("Failed to process gzip data: %v", err)})
 			return
 		}
 		defer gzReader.Close() // 延迟关闭 gzip reader
@@ -247,17 +101,13 @@ func MakeDecodeHandler(cfg *config.Config) http.HandlerFunc {
 		err = os.RemoveAll(cfg.Server.Dir)
 		if err != nil {
 			logError("Failed to clean directory: %v", err)
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusInternalServerError) // 500
-			json.NewEncoder(w).Encode(map[string]string{"message": fmt.Sprintf("Failed to clean directory: %v", err)})
+			c.JSON(http.StatusInternalServerError, touka.H{"message": fmt.Sprintf("Failed to clean directory: %v", err)})
 			return
 		}
 		err = os.MkdirAll(cfg.Server.Dir, 0755)
 		if err != nil {
 			logError("Failed to create directory: %v", err)
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusInternalServerError) // 500
-			json.NewEncoder(w).Encode(map[string]string{"message": fmt.Sprintf("Failed to create directory: %v", err)})
+			c.JSON(http.StatusInternalServerError, touka.H{"message": fmt.Sprintf("Failed to create directory: %v", err)})
 			return
 		}
 
@@ -271,9 +121,7 @@ func MakeDecodeHandler(cfg *config.Config) http.HandlerFunc {
 			}
 			if err != nil {
 				logError("Failed to read tar header: %v", err)
-				w.Header().Set("Content-Type", "application/json")
-				w.WriteHeader(http.StatusInternalServerError) // 500
-				json.NewEncoder(w).Encode(map[string]string{"message": fmt.Sprintf("Failed to read tar header: %v", err)})
+				c.JSON(http.StatusInternalServerError, touka.H{"message": fmt.Sprintf("Failed to read tar header: %v", err)})
 				return
 			}
 
@@ -283,9 +131,7 @@ func MakeDecodeHandler(cfg *config.Config) http.HandlerFunc {
 				targetPath, err := SafeTarExtractPath(cfg.Server.Dir, header.Name)
 				if err != nil {
 					logError("Path traversal detected for file %s: %v", header.Name, err)
-					w.Header().Set("Content-Type", "application/json")
-					w.WriteHeader(http.StatusBadRequest) // 400
-					json.NewEncoder(w).Encode(map[string]string{"message": fmt.Sprintf("Path traversal detected: %v", err)})
+					c.JSON(http.StatusBadRequest, touka.H{"message": fmt.Sprintf("Path traversal detected: %v", err)})
 					return
 				}
 
@@ -293,9 +139,7 @@ func MakeDecodeHandler(cfg *config.Config) http.HandlerFunc {
 				targetDir := filepath.Dir(targetPath)
 				if err := os.MkdirAll(targetDir, 0755); err != nil {
 					logError("Failed to create directory %s for file %s: %v", targetDir, header.Name, err)
-					w.Header().Set("Content-Type", "application/json")
-					w.WriteHeader(http.StatusInternalServerError) // 500
-					json.NewEncoder(w).Encode(map[string]string{"message": fmt.Sprintf("Failed to create directory: %v", err)})
+					c.JSON(http.StatusInternalServerError, touka.H{"message": fmt.Sprintf("Failed to create directory: %v", err)})
 					return
 				}
 
@@ -303,9 +147,7 @@ func MakeDecodeHandler(cfg *config.Config) http.HandlerFunc {
 				outFile, err := os.OpenFile(targetPath, os.O_CREATE|os.O_RDWR|os.O_TRUNC, os.FileMode(header.Mode))
 				if err != nil {
 					logError("Failed to create file %s: %v", targetPath, err)
-					w.Header().Set("Content-Type", "application/json")
-					w.WriteHeader(http.StatusInternalServerError) // 500
-					json.NewEncoder(w).Encode(map[string]string{"message": fmt.Sprintf("Failed to create file: %v", err)})
+					c.JSON(http.StatusInternalServerError, touka.H{"message": fmt.Sprintf("Failed to create file: %v", err)})
 					return
 				}
 
@@ -313,9 +155,7 @@ func MakeDecodeHandler(cfg *config.Config) http.HandlerFunc {
 				outFile.Close() // 在复制完成后立即关闭文件
 				if err != nil {
 					logError("Failed to copy file %s: %v", targetPath, err)
-					w.Header().Set("Content-Type", "application/json")
-					w.WriteHeader(http.StatusInternalServerError) // 500
-					json.NewEncoder(w).Encode(map[string]string{"message": fmt.Sprintf("Failed to copy file: %v", err)})
+					c.JSON(http.StatusInternalServerError, touka.H{"message": fmt.Sprintf("Failed to copy file: %v", err)})
 					return
 				}
 
@@ -336,18 +176,14 @@ func MakeDecodeHandler(cfg *config.Config) http.HandlerFunc {
 				targetPath, err := SafeTarExtractPath(cfg.Server.Dir, header.Name)
 				if err != nil {
 					logError("Path traversal detected for directory %s: %v", header.Name, err)
-					w.Header().Set("Content-Type", "application/json")
-					w.WriteHeader(http.StatusBadRequest) // 400
-					json.NewEncoder(w).Encode(map[string]string{"message": fmt.Sprintf("Path traversal detected: %v", err)})
+					c.JSON(http.StatusBadRequest, touka.H{"message": fmt.Sprintf("Path traversal detected: %v", err)})
 					return
 				}
 				// 使用 MkdirAll 确保父目录也创建
 				err = os.MkdirAll(targetPath, os.FileMode(header.Mode))
 				if err != nil {
 					logError("Failed to create directory %s: %v", targetPath, err)
-					w.Header().Set("Content-Type", "application/json")
-					w.WriteHeader(http.StatusInternalServerError) // 500
-					json.NewEncoder(w).Encode(map[string]string{"message": fmt.Sprintf("Failed to create directory: %v", err)})
+					c.JSON(http.StatusInternalServerError, touka.H{"message": fmt.Sprintf("Failed to create directory: %v", err)})
 					return
 				}
 
@@ -368,27 +204,21 @@ func MakeDecodeHandler(cfg *config.Config) http.HandlerFunc {
 				targetPath, err := SafeTarExtractPath(cfg.Server.Dir, header.Name)
 				if err != nil {
 					logError("Path traversal detected for symlink %s: %v", header.Name, err)
-					w.Header().Set("Content-Type", "application/json")
-					w.WriteHeader(http.StatusBadRequest) // 400
-					json.NewEncoder(w).Encode(map[string]string{"message": fmt.Sprintf("Path traversal detected: %v", err)})
+					c.JSON(http.StatusBadRequest, touka.H{"message": fmt.Sprintf("Path traversal detected: %v", err)})
 					return
 				}
 				// 确保目标目录存在
 				targetDir := filepath.Dir(targetPath)
 				if err := os.MkdirAll(targetDir, 0755); err != nil {
 					logError("Failed to create directory for symlink %s: %v", targetDir, err)
-					w.Header().Set("Content-Type", "application/json")
-					w.WriteHeader(http.StatusInternalServerError) // 500
-					json.NewEncoder(w).Encode(map[string]string{"message": fmt.Sprintf("Failed to create directory: %v", err)})
+					c.JSON(http.StatusInternalServerError, touka.H{"message": fmt.Sprintf("Failed to create directory: %v", err)})
 					return
 				}
 				// Linkname 是目标路径
 				err = os.Symlink(header.Linkname, targetPath)
 				if err != nil {
 					logError("Failed to create symlink %s -> %s: %v", targetPath, header.Linkname, err)
-					w.Header().Set("Content-Type", "application/json")
-					w.WriteHeader(http.StatusInternalServerError) // 500
-					json.NewEncoder(w).Encode(map[string]string{"message": fmt.Sprintf("Failed to create symlink: %v", err)})
+					c.JSON(http.StatusInternalServerError, touka.H{"message": fmt.Sprintf("Failed to create symlink: %v", err)})
 					return
 				}
 				processedEntries++ // 成功处理一个软链接
@@ -397,18 +227,14 @@ func MakeDecodeHandler(cfg *config.Config) http.HandlerFunc {
 				targetPath, err := SafeTarExtractPath(cfg.Server.Dir, header.Name)
 				if err != nil {
 					logError("Path traversal detected for hard link %s: %v", header.Name, err)
-					w.Header().Set("Content-Type", "application/json")
-					w.WriteHeader(http.StatusBadRequest) // 400
-					json.NewEncoder(w).Encode(map[string]string{"message": fmt.Sprintf("Path traversal detected: %v", err)})
+					c.JSON(http.StatusBadRequest, touka.H{"message": fmt.Sprintf("Path traversal detected: %v", err)})
 					return
 				}
 				// 确保目标目录存在
 				targetDir := filepath.Dir(targetPath)
 				if err := os.MkdirAll(targetDir, 0755); err != nil {
 					logError("Failed to create directory for hard link %s: %v", targetDir, err)
-					w.Header().Set("Content-Type", "application/json")
-					w.WriteHeader(http.StatusInternalServerError) // 500
-					json.NewEncoder(w).Encode(map[string]string{"message": fmt.Sprintf("Failed to create directory: %v", err)})
+					c.JSON(http.StatusInternalServerError, touka.H{"message": fmt.Sprintf("Failed to create directory: %v", err)})
 					return
 				}
 				// Hard links require the old path relative to the filesystem root or the baseDir.
@@ -417,32 +243,21 @@ func MakeDecodeHandler(cfg *config.Config) http.HandlerFunc {
 				err = os.Link(oldPath, targetPath)
 				if err != nil {
 					logError("Failed to create hard link %s -> %s: %v", targetPath, oldPath, err)
-					w.Header().Set("Content-Type", "application/json")
-					w.WriteHeader(http.StatusInternalServerError) // 500
-					json.NewEncoder(w).Encode(map[string]string{"message": fmt.Sprintf("Failed to create hard link: %v", err)})
+					c.JSON(http.StatusInternalServerError, touka.H{"message": fmt.Sprintf("Failed to create hard link: %v", err)})
 					return
 				}
 				processedEntries++ // 成功处理一个硬链接
 
 			default:
 				logWarning("Unhandled tar entry type for %s: %v", header.Name, header.Typeflag)
-				// 对于未处理类型，可以选择记录警告并继续，或者返回错误
-				// w.Header().Set("Content-Type", "application/json")
-				// w.WriteHeader(http.StatusBadRequest) // 400
-				// json.NewEncoder(w).Encode(map[string]string{"message": fmt.Sprintf("Unsupported tar entry type for %s", header.Name)})
-				// return // 如果选择返回错误
 			}
 		}
 
 		// 成功处理所有条目后发送成功响应
 		if processedEntries > 0 { // 检查是否处理了至少一个有效条目
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusOK) // 200
-			json.NewEncoder(w).Encode(map[string]string{"message": "success"})
+			c.JSON(http.StatusOK, touka.H{"message": "success"})
 		} else {
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusBadRequest) // 400 如果没有处理任何有效条目，可能表示请求有问题
-			json.NewEncoder(w).Encode(map[string]string{"message": "No valid entries processed in tar file"})
+			c.JSON(http.StatusBadRequest, touka.H{"message": "No valid entries processed in tar file"})
 		}
 
 	}

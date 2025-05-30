@@ -8,6 +8,8 @@ import (
 	"io/fs"
 	"net/http"
 	"sync"
+
+	"github.com/infinite-iroha/touka"
 )
 
 //go:embed page/*
@@ -43,7 +45,9 @@ func htmlTemplateRender(fsys fs.FS, data interface{}) ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-func ErrorHandler(w http.ResponseWriter, r *http.Request, statusCode int) {
+func ErrorHandler(c *touka.Context, statusCode int) {
+	r := c.Request
+	w := c.Writer
 	// 在写入响应之前检查客户端是否已断开连接
 	select {
 	case <-r.Context().Done():

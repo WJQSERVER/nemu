@@ -11,7 +11,10 @@ import (
 	"os"
 
 	"github.com/WJQSERVER-STUDIO/logger"
-	"github.com/WJQSERVER/httprouter"
+	"github.com/fenthope/gzip"
+	"github.com/fenthope/record"
+
+	"github.com/infinite-iroha/touka"
 )
 
 var (
@@ -69,54 +72,31 @@ func init() {
 
 func main() {
 
-	//r := gin.New()
-	//r.Use(gin.Recovery())
-	//r.Use(logm.Middleware())
-
-	r := httprouter.New()
-	r.HandlerFunc("POST", "/nemu/upload", decode.MakeDecodeHandler(cfg))
-	r.HandlerFunc("GET", "/nemu/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("ok"))
+	r := touka.New()
+	r.Use(touka.Recovery())
+	r.Use(record.Middleware())
+	r.Use(gzip.Gzip(gzip.DefaultCompression))
+	r.POST("/nemu/upload", decode.MakeDecodeHandler(cfg))
+	r.GET("/nemu/health", func(c *touka.Context) {
+		c.String(http.StatusOK, "ok")
 	})
 
 	fs := http.Dir(cfg.Server.Dir)
-	r.ServeUnmatched(fs)
-
-	//r.SetErrorHandler(r.GetDefaultErrHandler())
+	r.SetUnMatchFS(fs)
 	r.SetErrorHandler(errpage.ErrorHandler)
-	/*
-		r.POST("/nemu/upload",
-			func(c *gin.Context) {
-				decode.DecodeHandle(c, cfg)
-			})
-		r.GET("/nemu/health", func(c *gin.Context) {
-			c.JSON(200, gin.H{
-				"status": "ok",
-			})
-		})
+	r.SetProtocols(&touka.ProtocolsConfig{
+		Http1:           true,
+		Http2_Cleartext: true,
+	})
 
-		r.Run(cfg.Server.Host + ":" + fmt.Sprintf("%d", cfg.Server.Port))
-	*/
+	defer logger.Close()
 
-	// 自定义protocols
-	protocols := new(http.Protocols)
-	protocols.SetUnencryptedHTTP2(true)
-	protocols.SetHTTP1(true)
-	server := &http.Server{
-		Addr:      cfg.Server.Host + ":" + fmt.Sprintf("%d", cfg.Server.Port),
-		Handler:   r,
-		Protocols: protocols,
-	}
-
-	go func() {
-		logInfo("Server is running on %s %d", cfg.Server.Host, cfg.Server.Port)
-	}()
-	err := server.ListenAndServe()
+	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
+	logInfo("Server is running on %s", addr)
+	err := r.RunShutdown(addr)
 	if err != nil {
 		logError("Failed to start server: %v", err)
 	} else {
 		logInfo("Server stopped")
 	}
-
 }
