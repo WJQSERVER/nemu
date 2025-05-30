@@ -18,7 +18,3 @@ require (
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 )
-
-replace github.com/fenthope/gzip => /data/github/fenthope/gzip
-
-replace github.com/infinite-iroha/touka => /data/github/WJQSERVER/touka
