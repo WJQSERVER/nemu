@@ -98,6 +98,18 @@ func ErrorHandler(c *touka.Context, statusCode int) {
 		return
 	}
 
+	/*
+		// 检查是否已经存在其他状态码返回
+		if w.Written() {
+			// 如果响应已经开始写入（WriteHeader 已被调用），则不应该再次写入头部或改变状态码。
+			// 这通常发生在中间件或处理函数在调用 ErrorHandler 之前已经写入了部分响应。
+			// 在这种情况下，我们只能尝试写入错误信息到已开始的响应体中，但这可能导致客户端解析问题。
+			// 更好的做法是，如果响应已开始，直接返回，不尝试写入错误页面。
+			logWarning("errpage: response already started for status %d, skipping error page rendering", statusCode)
+			return
+		}
+	*/
+
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	// 确保在 WriteHeader 之前设置所有头部
 	// 状态码应该由调用 ErrorHandler 的地方（例如 httprouter）来设置，

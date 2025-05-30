@@ -13,7 +13,6 @@ import (
 	"github.com/WJQSERVER-STUDIO/logger"
 	"github.com/fenthope/gzip"
 	"github.com/fenthope/record"
-
 	"github.com/infinite-iroha/touka"
 )
 
@@ -75,7 +74,14 @@ func main() {
 	r := touka.New()
 	r.Use(touka.Recovery())
 	r.Use(record.Middleware())
-	r.Use(gzip.Gzip(gzip.DefaultCompression))
+
+	r.Use(gzip.Gzip(
+		gzip.DefaultCompression,
+		gzip.WithExcludedExtensions([]string{"css"}),
+	))
+
+	//r.Use(touka.Gzip(-1))
+
 	r.POST("/nemu/upload", decode.MakeDecodeHandler(cfg))
 	r.GET("/nemu/health", func(c *touka.Context) {
 		c.String(http.StatusOK, "ok")
