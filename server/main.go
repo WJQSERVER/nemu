@@ -77,7 +77,6 @@ func main() {
 
 	r.Use(gzip.Gzip(
 		gzip.DefaultCompression,
-		gzip.WithExcludedExtensions([]string{"css"}),
 	))
 
 	//r.Use(touka.Gzip(-1))
