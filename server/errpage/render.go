@@ -121,7 +121,8 @@ func ErrorHandler(c *touka.Context, statusCode int) {
 
 	_, err := w.Write(htmlContent)
 	if err != nil {
-		logWarning("errpage: failed to write response for status %d: %v", statusCode, err)
+		//logWarning("errpage: failed to write response for status %d: %v", statusCode, err)
+		c.Warnf("errpage: failed to write response for status %d: %v", statusCode, err)
 		return
 	}
 

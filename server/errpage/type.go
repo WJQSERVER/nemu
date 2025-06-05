@@ -1,17 +1,5 @@
 package errpage
 
-import "github.com/WJQSERVER-STUDIO/logger"
-
-// 日志模块
-var (
-	logw       = logger.Logw
-	logDump    = logger.LogDump
-	logDebug   = logger.LogDebug
-	logInfo    = logger.LogInfo
-	logWarning = logger.LogWarning
-	logError   = logger.LogError
-)
-
 type HTTPErrors struct {
 	StatusCode   int
 	StatusDesc   string

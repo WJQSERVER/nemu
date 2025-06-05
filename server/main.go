@@ -7,11 +7,13 @@ import (
 	"nemu-server/decode"
 	"nemu-server/errpage"
 	"net/http"
+	"strings"
+	"time"
 
 	"os"
 
-	"github.com/WJQSERVER-STUDIO/logger"
-	"github.com/fenthope/gzip"
+	"github.com/fenthope/compress"
+	"github.com/fenthope/reco"
 	"github.com/fenthope/record"
 	"github.com/infinite-iroha/touka"
 )
@@ -19,15 +21,6 @@ import (
 var (
 	cfg     *config.Config
 	cfgfile = "config/config.toml"
-)
-
-var (
-	logw       = logger.Logw
-	logDump    = logger.LogDump
-	logDebug   = logger.LogDebug
-	logInfo    = logger.LogInfo
-	logWarning = logger.LogWarning
-	logError   = logger.LogError
 )
 
 func loadConfig() {
@@ -41,31 +34,30 @@ func loadConfig() {
 	}
 }
 
-func setupLogger(cfg *config.Config) {
-	var err error
-	err = logger.Init(cfg.Log.LogFilePath, cfg.Log.MaxLogSize)
-	if err != nil {
-		fmt.Printf("Failed to initialize logger: %v\n", err)
-		os.Exit(1)
-	}
-	err = logger.SetLogLevel(cfg.Log.Level)
-	if err != nil {
-		fmt.Printf("Logger Level Error: %v\n", err)
-		os.Exit(1)
-	}
-	fmt.Printf("Log Level: %s\n", cfg.Log.Level)
-	logDebug("Config File Path: ", cfgfile)
-	logDebug("Loaded config: %v\n", cfg)
-	logInfo("Logger Initialized Successfully")
-}
-
 func init() {
 	loadConfig()
-	if cfg != nil { // 在setupLogger前添加空值检查
-		setupLogger(cfg)
-	} else {
-		fmt.Println("Config not loaded, exiting.")
-		os.Exit(1)
+}
+
+// Cache-Control中间件, 针对特定文件扩展名特殊处理
+func CacheControlMiddleware(maxAge int, extensions ...string) touka.HandlerFunc {
+	return func(c *touka.Context) {
+		// 判断路径文件扩展名
+		path := c.Request.URL.Path
+		applyCache := false
+		for _, ext := range extensions {
+			if strings.HasSuffix(path, "."+ext) {
+				applyCache = true
+				break
+			}
+		}
+
+		if applyCache {
+			c.SetHeader("Cache-Control", fmt.Sprintf("public, max-age=%d, must-revalidate", maxAge))
+		} else {
+			c.SetHeader("Cache-Control", "public, max-age=3600, must-revalidate")
+		}
+
+		c.Next()
 	}
 }
 
@@ -74,12 +66,23 @@ func main() {
 	r := touka.New()
 	r.Use(touka.Recovery())
 	r.Use(record.Middleware())
-
-	r.Use(gzip.Gzip(
-		gzip.DefaultCompression,
+	r.Use(CacheControlMiddleware(36000, "woff", "woff2", "ttf", "eot", "otf"))
+	r.Use(compress.Compression(
+		compress.DefaultCompressionConfig(),
 	))
 
-	//r.Use(touka.Gzip(-1))
+	r.SetLogger(reco.Config{
+		Level:           reco.LevelInfo,
+		Mode:            reco.ModeText,
+		TimeFormat:      time.RFC3339,
+		FilePath:        "nemu.log",
+		EnableRotation:  true,
+		MaxFileSizeMB:   5,
+		MaxBackups:      5,
+		CompressBackups: true,
+		Async:           true,
+		DefaultFields:   nil,
+	})
 
 	r.POST("/nemu/upload", decode.MakeDecodeHandler(cfg))
 	r.GET("/nemu/health", func(c *touka.Context) {
@@ -94,14 +97,12 @@ func main() {
 		Http2_Cleartext: true,
 	})
 
-	defer logger.Close()
-
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
-	logInfo("Server is running on %s", addr)
+	r.LogReco.Infof("Server is running on %s", addr)
 	err := r.RunShutdown(addr)
 	if err != nil {
-		logError("Failed to start server: %v", err)
+		r.LogReco.Errorf("Failed to start server: %v", err)
 	} else {
-		logInfo("Server stopped")
+		r.LogReco.Infof("Server stopped")
 	}
 }
