@@ -1,6 +1,8 @@
 package main
 
 import (
+	"compress/flate"
+	"compress/gzip"
 	"flag"
 	"fmt"
 	"nemu-server/config"
@@ -16,6 +18,7 @@ import (
 	"github.com/fenthope/reco"
 	"github.com/fenthope/record"
 	"github.com/infinite-iroha/touka"
+	"github.com/klauspost/compress/zstd"
 )
 
 var (
@@ -67,9 +70,31 @@ func main() {
 	r.Use(touka.Recovery())
 	r.Use(record.Middleware())
 	r.Use(CacheControlMiddleware(36000, "woff", "woff2", "ttf", "eot", "otf"))
-	r.Use(compress.Compression(
-		compress.DefaultCompressionConfig(),
-	))
+	r.Use(compress.Compression(compress.CompressOptions{
+		Algorithms: map[string]compress.AlgorithmConfig{
+			compress.EncodingGzip: {
+				Level:       gzip.BestCompression, // Gzip最高压缩比
+				PoolEnabled: true,                 // 启用Gzip压缩器的对象池
+			},
+			compress.EncodingDeflate: {
+				Level:       flate.DefaultCompression, // Deflate默认压缩比
+				PoolEnabled: false,                    // Deflate不启用对象池
+			},
+			compress.EncodingZstd: {
+				Level:       int(zstd.SpeedBestCompression), // Zstandard最佳压缩比
+				PoolEnabled: true,                           // 启用Zstandard压缩器的对象池
+			},
+		},
+
+		MinContentLength:  256,
+		CompressibleTypes: compress.DefaultCompressibleTypes,
+
+		EncodingPriority: []string{
+			compress.EncodingZstd,
+			compress.EncodingGzip,
+			compress.EncodingDeflate,
+		},
+	}))
 
 	r.SetLogger(reco.Config{
 		Level:           reco.LevelInfo,
